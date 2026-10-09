@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 crAPI OWASP API Security Top 10 (2023) Attack Simulator
-Usage: python crapihacker.py --url https://... --attack all
+Usage: python crapihacker.py --url https://... --attack [all|runtime-all|posture-all|api1,api2,...]
 """
 
 import argparse
@@ -763,8 +763,8 @@ def main():
     parser.add_argument("--url",    default="http://localhost:8888",
                         help="crAPI base URL (default: http://localhost:8888)")
     parser.add_argument("--attack", default="all",
-                        help="Attack to run: all | api1 | api2 | … | api10 | injection | log4j | "
-                             "posture-all | posture-api2 | … (comma-separated for multiple, e.g. api1,posture-api2)")
+                        help="Attack to run: all | runtime-all | posture-all | api1 | api2 | … | api10 | "
+                             "injection | log4j | posture-api2 | … (comma-separated for multiple, e.g. api1,posture-api2)")
     parser.add_argument("--list",   action="store_true",
                         help="List available attacks and exit")
     parser.add_argument("--reset",  action="store_true",
@@ -803,8 +803,18 @@ def main():
         sys.exit(1)
 
     selected = args.attack.lower()
+
+    # Define runtime and posture attack categories
+    runtime_attacks = ["api1", "api2", "api3", "api4", "api5", "api6", "api7",
+                      "api8", "api9", "api10", "injection", "log4j"]
+    posture_attacks = [k for k in ATTACKS.keys() if k.startswith("posture-")]
+
     if selected == "all":
         to_run = list(ATTACKS.keys())
+    elif selected == "runtime-all":
+        to_run = runtime_attacks
+    elif selected == "posture-all":
+        to_run = ["posture-all"]
     else:
         to_run = [s.strip() for s in selected.split(",")]
         invalid = [k for k in to_run if k not in ATTACKS]
