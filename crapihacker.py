@@ -713,7 +713,19 @@ def log4j(base, u1, t1, u2, t2):
 
 
 # ── attack registry ───────────────────────────────────────────────────────────
+# Import posture attacks (optional - gracefully handle if not available)
+try:
+    from posture_attacks import (
+        posture_api2, posture_api3, posture_api4, posture_api5,
+        posture_api6, posture_api8, posture_api9, posture_api10,
+        run_all_posture_attacks
+    )
+    HAS_POSTURE = True
+except ImportError:
+    HAS_POSTURE = False
+
 ATTACKS = {
+    # OWASP API Security Top 10 (2023) - Exploitation
     "api1":      ("BOLA",                       api1),
     "api2":      ("Broken Authentication",      api2),
     "api3":      ("BOPLA",                      api3),
@@ -728,6 +740,21 @@ ATTACKS = {
     "log4j":     ("Log4j JNDI",                log4j),
 }
 
+# Add posture attacks if available
+if HAS_POSTURE:
+    ATTACKS.update({
+        # Posture Management Findings - Detection Traffic
+        "posture-all": ("All Posture Findings",           run_all_posture_attacks),
+        "posture-api2": ("Posture: Broken Auth",          posture_api2),
+        "posture-api3": ("Posture: BOPLA",                posture_api3),
+        "posture-api4": ("Posture: Resource Consumption", posture_api4),
+        "posture-api5": ("Posture: BFLA",                 posture_api5),
+        "posture-api6": ("Posture: Business Flows",       posture_api6),
+        "posture-api8": ("Posture: Security Misconfig",   posture_api8),
+        "posture-api9": ("Posture: Inventory Mgmt",       posture_api9),
+        "posture-api10": ("Posture: Unsafe Consumption",  posture_api10),
+    })
+
 
 # ── main ──────────────────────────────────────────────────────────────────────
 def main():
@@ -736,8 +763,8 @@ def main():
     parser.add_argument("--url",    default="http://localhost:8888",
                         help="crAPI base URL (default: http://localhost:8888)")
     parser.add_argument("--attack", default="all",
-                        help="Attack to run: all | api1 | api2 | … | api10 | injection | log4j "
-                             "(comma-separated for multiple, e.g. api1,api3)")
+                        help="Attack to run: all | api1 | api2 | … | api10 | injection | log4j | "
+                             "posture-all | posture-api2 | … (comma-separated for multiple, e.g. api1,posture-api2)")
     parser.add_argument("--list",   action="store_true",
                         help="List available attacks and exit")
     parser.add_argument("--reset",  action="store_true",

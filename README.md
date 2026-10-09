@@ -2,6 +2,8 @@
 
 Python script that runs all [OWASP API Security Top 10 (2023)](https://owasp.org/API-Security/editions/2023/en/0x11-t10/) attacks against a [crAPI](https://github.com/OWASP/crAPI) instance.
 
+**NEW:** Includes **Posture Management** traffic generators that trigger API security posture detections (168 findings mapped to OWASP categories).
+
 ## Requirements
 
 - Python 3.8+
@@ -40,7 +42,11 @@ python crapihacker.py --reset
 
 **Performance:** Requests timeout after 30 seconds (suitable for remote/slow instances). The script shows verbose progress output for each attack phase.
 
+**Posture Attacks:** Generate traffic over 5-30 minutes for realistic detection patterns. Posture attacks test what security tools can *detect*, while exploitation attacks test what can be *exploited*.
+
 ## Attacks
+
+### Exploitation Attacks (OWASP Top 10)
 
 | ID         | OWASP Category                              | What it tests |
 |------------|---------------------------------------------|---------------|
@@ -57,6 +63,31 @@ python crapihacker.py --reset
 | injection  | General Injection Attacks                   | JWT alg:none, SQLi in comments, XSS in comments, path traversal |
 | log4j      | CVE-2021-44228 Log4Shell                    | JNDI LDAP/RMI payloads in User-Agent header (RCE) |
 
+### Posture Management Attacks (Detection Traffic)
+
+Generate traffic patterns that trigger API security posture findings. See [POSTURE_MAPPING.md](POSTURE_MAPPING.md) for detailed coverage.
+
+| ID           | OWASP Category | Findings | What it generates |
+|--------------|----------------|----------|-------------------|
+| posture-all  | All categories | 168      | Runs all posture attacks below |
+| posture-api2 | Broken Authentication | 41 | Expired/unsigned/long-lived JWTs, credential spraying/stuffing, Basic auth, auth in URLs |
+| posture-api3 | BOPLA | 87 | Unauthenticated access, stack traces, excessive data, forbidden data exposure |
+| posture-api4 | Resource Consumption | 11 | SQL injection patterns, mass email/SMS, HTTP downgrade attempts |
+| posture-api5 | BFLA | 13 | Unauthenticated POST/PUT/DELETE, cross-user modifications, GraphQL mutations |
+| posture-api6 | Business Flows | 4 | Business logic SQL injection, bulk data extraction |
+| posture-api8 | Security Misconfig | 89 | GraphQL introspection, CORS testing, sensitive data in URLs, server fingerprinting |
+| posture-api9 | Inventory Mgmt | 3 | Old API versions (v1/v0/beta), exposed API docs (Swagger/OpenAPI) |
+| posture-api10 | Unsafe Consumption | 2 | OAuth Implicit flow, OAuth ROPC flow detection |
+
+**Example:**
+```bash
+# Generate posture findings for broken authentication
+python crapihacker.py --url https://crapi.example.com --attack posture-api2
+
+# Combine exploitation + posture detection
+python crapihacker.py --url https://crapi.example.com --attack api2,posture-api2,posture-api8
+```
+
 ## Output
 
 - 🟢 `[VULNERABLE]` — attack succeeded, vulnerability confirmed
@@ -71,3 +102,21 @@ The script shows verbose progress output for each attack phase, making it easy t
 On first run the script registers two test accounts (attacker + victim) and saves them to `.crapi_session.json`. Subsequent runs reuse the same identities so attacker-owned data (vehicles, orders, reports) accumulates across sessions. Run `--reset` to start fresh.
 
 > **Note:** `.crapi_session.json` contains credentials — do not commit it.
+
+## Exploitation vs Posture Detection
+
+This tool now supports two modes:
+
+### 🔴 Exploitation Attacks (`api1` - `api10`, `injection`, `log4j`)
+- **Goal:** Actually exploit vulnerabilities
+- **Result:** Data exfiltration, privilege escalation, RCE
+- **Demo use:** "Here's how an attacker breaks in"
+
+### 🟡 Posture Detection Traffic (`posture-api2` - `posture-api10`)
+- **Goal:** Generate traffic patterns that trigger security posture findings
+- **Result:** API security tools detect suspicious patterns (e.g., SQL injection attempts, JWT issues, CORS misconfigs)
+- **Demo use:** "Here's what your security posture management detects"
+
+**Key difference:** Exploitation attacks succeed when crAPI is vulnerable. Posture attacks generate *detectable patterns* whether or not the vulnerability exists.
+
+See [POSTURE_MAPPING.md](POSTURE_MAPPING.md) for complete mapping of 168 posture findings to OWASP categories and traffic patterns.
